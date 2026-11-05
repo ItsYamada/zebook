@@ -1,17 +1,19 @@
 import mysql from 'mysql2/promise';
 import { config } from './config.js';
 
+const ssl = config.dbSsl ? { rejectUnauthorized: false } : undefined;
+
 export const pool = mysql.createPool({
-  uri: config.databaseUrl,
+  ...config.db,
+  ssl,
+  charset: 'utf8mb4',
   waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0,
 });
 
-export const query = async (sql, params = []) => {
-  const [rows] = await pool.execute(sql, params);
-  return {
-    rows: Array.isArray(rows) ? rows : [],
-    rowCount: Array.isArray(rows) ? rows.length : rows.affectedRows,
-  };
-};
+// Small helper: returns { rows } for SELECTs and { insertId, rowCount } for writes.
+export async function query(sql, params = []) {
+  const [result] = await pool.query(sql, params);
+  if (Array.isArray(result)) return { rows: result, rowCount: result.length };
+  return { rows: [], rowCount: result.affectedRows, insertId: result.insertId };
+}
