@@ -1,7 +1,10 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './AuthContext.jsx';
 import AuthPage from './pages/AuthPage.jsx';
-import Catalog from './pages/Catalog.jsx';
+import Layout from './components/Layout.jsx';
+import Discover from './pages/Discover.jsx';
+import Account from './pages/Account.jsx';
+import ComingSoon from './pages/ComingSoon.jsx';
 
 function Protected({ children }) {
   const { me, loading } = useAuth();
@@ -20,7 +23,16 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<GuestOnly><AuthPage mode="login" /></GuestOnly>} />
       <Route path="/register" element={<GuestOnly><AuthPage mode="register" /></GuestOnly>} />
-      <Route path="/" element={<Protected><Catalog /></Protected>} />
+
+      <Route element={<Protected><Layout /></Protected>}>
+        <Route index element={<Discover />} />
+        <Route path="library" element={<ComingSoon kind="library" />} />
+        <Route path="favorites" element={<ComingSoon kind="favorites" />} />
+        <Route path="assistant" element={<ComingSoon kind="assistant" />} />
+        <Route path="admin" element={<ComingSoon kind="admin" />} />
+        <Route path="account" element={<Account />} />
+      </Route>
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

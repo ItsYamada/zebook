@@ -58,8 +58,8 @@ export default function AuthPage({ mode }) {
   return (
     <main className="auth">
       <section className="auth-art">
-        <h1 className="brand">Stacks</h1>
-        <p className="tagline">Two hundred books, one place to find them. Ask the assistant what to read next.</p>
+        <h1 className="brand">Ze<span>Book</span></h1>
+        <p className="tagline">Your digital library on the web and on your phone, with an AI assistant that helps you find what to read next.</p>
         <Shelf />
       </section>
 
