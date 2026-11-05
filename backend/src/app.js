@@ -5,6 +5,7 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { config } from './config.js';
+import { query } from './db.js';
 import authRoutes from './routes/auth.js';
 import bookRoutes from './routes/books.js';
 
@@ -20,6 +21,16 @@ app.use(cors({ origin: config.corsOrigin }));
 app.use(express.json({ limit: '100kb' }));
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
+
+// Checks the database connection (shows only an error code, never secrets). Handy right after deploying.
+app.get('/api/health/db', async (_req, res) => {
+  try {
+    const { rows } = await query('SELECT COUNT(*) AS books FROM books');
+    res.json({ db: 'ok', books: Number(rows[0].books) });
+  } catch (err) {
+    res.status(500).json({ db: 'error', code: err.code || 'UNKNOWN' });
+  }
+});
 app.use('/api/auth', authRoutes);
 app.use('/api/books', bookRoutes);
 app.use('/api', (req, res) => res.status(404).json({ error: `Route not found: ${req.method} ${req.originalUrl}` }));
