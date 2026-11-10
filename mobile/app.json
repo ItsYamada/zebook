@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "ZeBook",
+    "slug": "zebook",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "android": {
+      "package": "com.itsyamada.zebook",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#14213D",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "plugins": ["expo-secure-store"]
+  }
+}
