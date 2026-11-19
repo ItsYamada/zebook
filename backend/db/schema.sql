@@ -69,3 +69,11 @@ CREATE TABLE IF NOT EXISTS pending_actions (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_pa_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Cached full text of books opened in the reader (so reading works even if the online source is down)
+CREATE TABLE IF NOT EXISTS book_texts (
+  book_id    INT PRIMARY KEY,
+  content    LONGTEXT NOT NULL,
+  fetched_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_bt_book FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

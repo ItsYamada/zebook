@@ -4,6 +4,7 @@ import AuthPage from './pages/AuthPage.jsx';
 import Layout from './components/Layout.jsx';
 import Discover from './pages/Discover.jsx';
 import Account from './pages/Account.jsx';
+import Reader from './pages/Reader.jsx';
 import ComingSoon from './pages/ComingSoon.jsx';
 
 function Protected({ children }) {
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="assistant" element={<ComingSoon kind="assistant" />} />
         <Route path="admin" element={<ComingSoon kind="admin" />} />
         <Route path="account" element={<Account />} />
+        <Route path="read/:id" element={<Reader />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, Linking, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native';
 import { api } from '../api';
 import { useAuth } from '../AuthContext';
 import Cover from '../components/Cover';
@@ -7,7 +7,7 @@ import { colors, serif } from '../theme';
 
 const PAGE = 20;
 
-export default function DiscoverScreen() {
+export default function DiscoverScreen({ onRead }) {
   const { me, refresh } = useAuth();
   const { width } = useWindowDimensions();
   const cardW = (width - 16 * 2 - 14) / 2;
@@ -76,7 +76,7 @@ export default function DiscoverScreen() {
     try {
       const d = await api(`/books/${book.id}/download`, { method: 'POST' });
       setBooks((list) => list.map((b) => (b.id === book.id ? { ...b, downloaded: true } : b)));
-      setToast({ type: 'ok', msg: d.message, url: d.fileUrl });
+      setToast({ type: 'ok', msg: d.message, book });
     } catch (e) {
       setToast({ type: 'error', msg: e.message });
     } finally {
@@ -141,8 +141,8 @@ export default function DiscoverScreen() {
               <Text style={styles.bookMeta} numberOfLines={1}>{b.author}{b.year ? ` · ${b.year}` : ''}</Text>
             </View>
             {b.downloaded ? (
-              <Pressable style={[styles.dl, styles.dlDone]} onPress={() => download(b)} disabled={busyId === b.id}>
-                <Text style={styles.dlDoneText}>✓ Downloaded</Text>
+              <Pressable style={[styles.dl, styles.dlRead]} onPress={() => onRead(b)}>
+                <Text style={styles.dlReadText}>📖 Read</Text>
               </Pressable>
             ) : (
               <Pressable style={[styles.dl, (busyId === b.id || limitReached) && { opacity: 0.55 }]} onPress={() => download(b)} disabled={busyId === b.id || limitReached}>
@@ -156,7 +156,7 @@ export default function DiscoverScreen() {
       {toast && (
         <View style={[styles.toast, toast.type === 'error' && { backgroundColor: colors.danger }]}>
           <Text style={styles.toastText} numberOfLines={3}>{toast.msg}</Text>
-          {!!toast.url && <Pressable onPress={() => Linking.openURL(toast.url)}><Text style={styles.toastLink}>Open file</Text></Pressable>}
+          {!!toast.book && <Pressable onPress={() => { onRead(toast.book); setToast(null); }}><Text style={styles.toastLink}>Read now</Text></Pressable>}
           <Pressable onPress={() => setToast(null)} hitSlop={10}><Text style={styles.toastX}>✕</Text></Pressable>
         </View>
       )}
@@ -194,8 +194,8 @@ const styles = StyleSheet.create({
   bookMeta: { color: colors.inkSoft, fontSize: 12 },
   dl: { backgroundColor: colors.teal, borderRadius: 8, paddingVertical: 9, alignItems: 'center' },
   dlText: { color: '#fff', fontWeight: '700', fontSize: 13 },
-  dlDone: { backgroundColor: colors.tealSoft },
-  dlDoneText: { color: colors.tealDark, fontWeight: '700', fontSize: 13 },
+  dlRead: { backgroundColor: 'transparent', borderWidth: 2, borderColor: colors.teal },
+  dlReadText: { color: colors.tealDark, fontWeight: '700', fontSize: 13 },
   toast: { position: 'absolute', left: 12, right: 12, bottom: 12, flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.ink, borderRadius: 10, paddingVertical: 12, paddingHorizontal: 14, elevation: 8 },
   toastText: { flex: 1, color: '#fff', fontSize: 14 },
   toastLink: { color: colors.brass, fontWeight: '700' },

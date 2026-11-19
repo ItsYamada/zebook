@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './src/AuthContext';
 import AuthScreen from './src/screens/AuthScreen';
 import DiscoverScreen from './src/screens/DiscoverScreen';
 import SoonScreen from './src/screens/SoonScreen';
+import ReaderScreen from './src/screens/ReaderScreen';
 import AccountScreen from './src/screens/AccountScreen';
 import Logo from './src/components/Logo';
 import Meter from './src/components/Meter';
@@ -23,6 +24,7 @@ function Main() {
   const insets = useSafeAreaInsets();
   const { me } = useAuth();
   const [tab, setTab] = useState('discover');
+  const [reading, setReading] = useState(null);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.paper }}>
@@ -39,12 +41,14 @@ function Main() {
       )}
 
       <View style={{ flex: 1 }}>
-        {tab === 'discover' && <DiscoverScreen />}
+        {tab === 'discover' && <DiscoverScreen onRead={setReading} />}
         {tab === 'library' && <SoonScreen kind="library" />}
         {tab === 'favorites' && <SoonScreen kind="favorites" />}
         {tab === 'assistant' && <SoonScreen kind="assistant" />}
         {tab === 'account' && <AccountScreen />}
       </View>
+
+      {reading && <ReaderScreen book={reading} onClose={() => setReading(null)} />}
 
       <View style={[styles.tabbar, { paddingBottom: insets.bottom + 6 }]}>
         {TABS.map((t) => {

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { pool, query } from '../db.js';
 import { config } from '../config.js';
 import { requireAuth } from '../middleware/auth.js';
+import { loadPages } from '../bookText.js';
 
 const router = Router();
 
@@ -115,6 +116,26 @@ router.post('/:id/download', requireAuth, async (req, res) => {
   } finally {
     conn.release();
   }
+});
+
+// GET /api/books/:id/read?page=1  -> one page of the book text (only for books the owner has downloaded)
+router.get('/:id/read', requireAuth, async (req, res) => {
+  const bookId = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(bookId) || bookId < 1) return res.status(400).json({ error: 'Invalid book id' });
+
+  const { rows } = await query('SELECT id, title, author, file_url FROM books WHERE id = ?', [bookId]);
+  if (!rows.length) return res.status(404).json({ error: 'Book not found' });
+
+  const owner = ownerOf(req.auth);
+  const owned = await query(`SELECT 1 FROM downloads WHERE ${owner.column} = ? AND book_id = ? LIMIT 1`, [owner.value, bookId]);
+  if (!owned.rowCount) return res.status(403).json({ error: 'Download this book first to read it.', code: 'NOT_DOWNLOADED' });
+
+  const pages = await loadPages(rows[0]);
+  if (!pages) return res.status(503).json({ error: 'The book text is temporarily unavailable. Please try again in a little while.', code: 'TEXT_UNAVAILABLE' });
+
+  const totalPages = pages.length;
+  const page = Math.min(Math.max(parseInt(req.query.page, 10) || 1, 1), totalPages);
+  res.json({ book: { id: rows[0].id, title: rows[0].title, author: rows[0].author }, page, totalPages, text: pages[page - 1] });
 });
 
 export default router;

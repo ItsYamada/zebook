@@ -106,11 +106,8 @@ input:focus { border-color: var(--teal); outline: none; box-shadow: 0 0 0 3px rg
 .books { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 1.8rem 1.3rem; transition: opacity 0.2s; }
 .books.dim { opacity: 0.55; }
 .book { display: flex; flex-direction: column; gap: 0.5rem; }
-.cover { aspect-ratio: 2 / 3; border-radius: 4px 10px 10px 4px; overflow: hidden; position: relative; display: flex; align-items: flex-end; padding: 0.8rem; color: #fff; box-shadow: inset 7px 0 0 rgba(0,0,0,0.2), 0 6px 14px rgba(20,33,61,0.2); transition: transform 0.2s; }
 .book:hover .cover { transform: translateY(-4px); }
 .cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-.cover-title { font-family: var(--serif); font-weight: 700; font-size: 1.1rem; line-height: 1.2; position: relative; }
-.tag { position: absolute; top: 0.6rem; left: 0.9rem; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; background: rgba(20,33,61,0.75); color: #fff; padding: 0.15rem 0.5rem; border-radius: 99px; }
 .meta { display: flex; flex-direction: column; font-size: 0.88rem; color: var(--ink-soft); min-height: 2.8rem; }
 .meta strong { color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pager { display: flex; justify-content: center; align-items: center; gap: 1rem; margin: 2.2rem 0 1rem; color: var(--ink-soft); font-size: 0.92rem; }
@@ -120,6 +117,36 @@ input:focus { border-color: var(--teal); outline: none; box-shadow: 0 0 0 3px rg
 .toast a { color: var(--brass); font-weight: 700; white-space: nowrap; }
 .toast button { background: none; border: 0; color: inherit; font-size: 1.3rem; cursor: pointer; line-height: 1; }
 @keyframes rise { from { opacity: 0; transform: translate(-50%, 12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
+/* ---------- Covers (drawn by the app) ---------- */
+.cover { aspect-ratio: 2 / 3; border-radius: 4px 10px 10px 4px; overflow: hidden; position: relative; display: flex; flex-direction: column; justify-content: flex-end; padding: 0.85rem 0.85rem 0.9rem 1.05rem; color: #fff; box-shadow: inset 7px 0 0 rgba(0,0,0,0.22), 0 6px 14px rgba(20,33,61,0.2); transition: transform 0.2s; }
+.book:hover .cover { transform: translateY(-4px); }
+.cover::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(0,0,0,0) 40%, rgba(0,0,0,0.22) 100%); pointer-events: none; }
+.cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2; }
+.cover-mark { position: absolute; right: -0.4rem; bottom: -1.6rem; font-family: var(--serif); font-weight: 700; font-size: 9rem; line-height: 1; opacity: 0.13; z-index: 0; }
+.cover-text { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 0.45rem; }
+.cover-title { font-family: var(--serif); font-weight: 700; font-size: 1.15rem; line-height: 1.18; }
+.cover-rule { width: 1.8rem; height: 3px; background: var(--brass); border-radius: 2px; }
+.cover-author { font-size: 0.78rem; opacity: 0.88; }
+.tag { position: absolute; top: 0.6rem; left: 1.05rem; z-index: 3; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; background: rgba(20,33,61,0.78); color: #fff; padding: 0.15rem 0.5rem; border-radius: 99px; }
+.btn.read { background: transparent; color: var(--teal-dark); border-color: var(--teal); }
+.btn.read:hover { background: var(--teal-soft); }
+
+/* ---------- Reader ---------- */
+.reader { min-height: calc(100vh - 4rem); background: #fbf8f1; }
+.reader-bar { position: sticky; top: 4.1rem; z-index: 8; display: flex; align-items: center; gap: 1rem; padding: 0.6rem 1.5rem; background: #fbf8f1; border-bottom: 1px solid #e6dfcf; }
+.reader-title { flex: 1; display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.reader-title strong { font-family: var(--serif); font-size: 1.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.reader-title span { font-size: 0.85rem; color: var(--ink-soft); }
+.font-ctl { display: flex; gap: 0.3rem; }
+.font-ctl button { font: inherit; font-weight: 700; padding: 0.35rem 0.7rem; border: 1.5px solid var(--line); background: #fff; border-radius: 8px; cursor: pointer; color: var(--ink); }
+.font-ctl button:hover { border-color: var(--ink); }
+.reader-progress { height: 3px; background: #e6dfcf; }
+.reader-progress div { height: 100%; background: var(--teal); transition: width 0.3s; }
+.reader-text { max-width: 40rem; margin: 0 auto; padding: 2rem 1.5rem 1rem; font-family: var(--serif); line-height: 1.75; color: #2a2a2a; transition: opacity 0.15s; }
+.reader-text.dim { opacity: 0.45; }
+.reader-text p { margin: 0 0 1.1em; white-space: pre-wrap; text-align: left; }
+.reader-nav { max-width: 40rem; margin: 0 auto; padding: 1rem 1.5rem 3rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; color: var(--ink-soft); font-size: 0.92rem; }
 
 /* ---------- Account, coming soon ---------- */
 .page-title { font-size: 2rem; margin-bottom: 1.2rem; }
@@ -156,6 +183,9 @@ input:focus { border-color: var(--teal); outline: none; box-shadow: 0 0 0 3px rg
   .nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--surface); border-top: 1px solid var(--line); justify-content: space-around; padding: 0.3rem 0.3rem calc(0.3rem + env(safe-area-inset-bottom, 0px)); z-index: 20; flex: none; }
   .nav a { flex-direction: column; gap: 0.1rem; font-size: 0.72rem; padding: 0.4rem 0.5rem; }
   .shell { padding-bottom: 4.2rem; }
+  .reader-bar { top: 3.4rem; padding: 0.5rem 1rem; }
+  .reader-text { padding: 1.4rem 1.1rem 0.5rem; }
+  .reader-nav { padding: 0.8rem 1.1rem 2rem; }
   .hero { padding: 2rem 1rem 1.6rem; }
   .content { padding: 1.3rem 1rem; }
 }

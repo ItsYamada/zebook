@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../api.js';
 import { useAuth } from '../AuthContext.jsx';
-
-const COLORS = ['#3d5a80', '#1f6f78', '#a8452f', '#5b4a8a', '#7a5f12', '#2f4858'];
-const coverColor = (id) => COLORS[id % COLORS.length];
+import Cover from '../components/Cover.jsx';
 
 function useDebounced(value, ms = 350) {
   const [v, setV] = useState(value);
@@ -12,21 +11,6 @@ function useDebounced(value, ms = 350) {
     return () => clearTimeout(t);
   }, [value, ms]);
   return v;
-}
-
-function Cover({ book }) {
-  const [failed, setFailed] = useState(false);
-  const showImage = book.cover_url && !failed;
-  return (
-    <div className="cover" style={{ background: coverColor(book.id) }}>
-      {showImage ? (
-        <img src={book.cover_url} alt={`Cover of ${book.title}`} loading="lazy" referrerPolicy="no-referrer" onError={() => setFailed(true)} />
-      ) : (
-        <span className="cover-title">{book.title}</span>
-      )}
-      <span className="tag">{book.genre}</span>
-    </div>
-  );
 }
 
 export default function Discover() {
@@ -78,7 +62,7 @@ export default function Discover() {
     try {
       const d = await api(`/books/${book.id}/download`, { method: 'POST' });
       setBooks((list) => list.map((b) => (b.id === book.id ? { ...b, downloaded: true } : b)));
-      setToast({ type: 'ok', msg: d.message, url: d.fileUrl });
+      setToast({ type: 'ok', msg: d.message, readId: book.id });
     } catch (e) {
       setToast({ type: 'error', msg: e.message });
     } finally {
@@ -136,7 +120,7 @@ export default function Discover() {
                 <span>{b.author}{b.year ? ` · ${b.year}` : ''}</span>
               </div>
               {b.downloaded ? (
-                <button className="btn done sm" onClick={() => download(b)} disabled={busyId === b.id}>✓ Downloaded</button>
+                <Link to={`/read/${b.id}`} className="btn read sm">📖 Read</Link>
               ) : (
                 <button className="btn primary sm" onClick={() => download(b)} disabled={busyId === b.id || limitReached}>
                   {busyId === b.id ? 'Preparing…' : limitReached ? 'Limit reached' : 'Download'}
@@ -158,7 +142,7 @@ export default function Discover() {
       {toast && (
         <div className={`toast ${toast.type}`} role="status">
           <span>{toast.msg}</span>
-          {toast.url && <a href={toast.url} target="_blank" rel="noopener noreferrer">Open file</a>}
+          {toast.readId && <Link to={`/read/${toast.readId}`}>Read now</Link>}
           <button aria-label="Dismiss" onClick={() => setToast(null)}>×</button>
         </div>
       )}
