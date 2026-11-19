@@ -77,3 +77,11 @@ CREATE TABLE IF NOT EXISTS book_texts (
   fetched_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_bt_book FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Remembers which cover image (from Open Library) belongs to each book; url is NULL when no cover exists
+CREATE TABLE IF NOT EXISTS book_covers (
+  book_id    INT PRIMARY KEY,
+  url        VARCHAR(500) NULL,
+  checked_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_bc_book FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

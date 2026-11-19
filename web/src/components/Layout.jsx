@@ -58,7 +58,7 @@ export default function Layout() {
 
       <Outlet />
 
-      <footer className="footer">ZeBook · IPT102 Final Practical Examination · Only legally free books are offered for download</footer>
+      <footer className="footer">ZeBook · IPT102 Final Practical Examination · Free public-domain books · Covers from Open Library</footer>
     </div>
   );
 }

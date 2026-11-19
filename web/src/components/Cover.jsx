@@ -1,7 +1,8 @@
 import { useState } from 'react';
+import { coverUrl } from '../api.js';
 
 // Every cover is drawn by the app, so it always looks good (and works offline).
-// A real cover image, when the source has one and is reachable, is shown on top of it.
+// The real cover image (looked up by the server on Open Library) is shown on top when one exists.
 const GENRE_COLORS = {
   Classics: '#3d5a80',
   Adventure: '#a8452f',
@@ -16,8 +17,9 @@ export const coverColor = (book) => GENRE_COLORS[book.genre] || FALLBACK[book.id
 
 export default function Cover({ book }) {
   const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   return (
-    <div className="cover" style={{ background: coverColor(book) }}>
+    <div className={`cover ${loaded ? 'loaded' : ''}`} style={{ background: coverColor(book) }}>
       <span className="cover-mark" aria-hidden="true">{(book.title || '?').replace(/^(The|A|An)\s+/i, '').charAt(0)}</span>
       <span className="tag">{book.genre}</span>
       <div className="cover-text">
@@ -25,8 +27,8 @@ export default function Cover({ book }) {
         <span className="cover-rule" />
         <span className="cover-author">{book.author}</span>
       </div>
-      {book.cover_url && !failed && (
-        <img src={book.cover_url} alt={`Cover of ${book.title}`} loading="lazy" referrerPolicy="no-referrer" onError={() => setFailed(true)} />
+      {!failed && (
+        <img src={coverUrl(book.id)} alt={`Cover of ${book.title}`} loading="lazy" onLoad={() => setLoaded(true)} onError={() => setFailed(true)} />
       )}
     </div>
   );

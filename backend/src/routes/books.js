@@ -3,6 +3,7 @@ import { pool, query } from '../db.js';
 import { config } from '../config.js';
 import { requireAuth } from '../middleware/auth.js';
 import { loadPages } from '../bookText.js';
+import { resolveCover } from '../covers.js';
 
 const router = Router();
 
@@ -116,6 +117,22 @@ router.post('/:id/download', requireAuth, async (req, res) => {
   } finally {
     conn.release();
   }
+});
+
+// GET /api/books/:id/cover  -> redirects to the real cover image (public, so <img> tags can use it)
+router.get('/:id/cover', async (req, res) => {
+  const bookId = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(bookId) || bookId < 1) return res.status(400).end();
+  const { rows } = await query('SELECT id, title, author FROM books WHERE id = ?', [bookId]);
+  if (!rows.length) return res.status(404).end();
+
+  const url = await resolveCover(rows[0]);
+  if (!url) {
+    res.set('Cache-Control', 'public, max-age=300');
+    return res.status(404).end(); // the apps then show the drawn cover
+  }
+  res.set('Cache-Control', 'public, max-age=86400');
+  res.redirect(302, url);
 });
 
 // GET /api/books/:id/read?page=1  -> one page of the book text (only for books the owner has downloaded)

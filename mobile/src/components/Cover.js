@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
+import { API_URL } from '../config';
 import { coverColors, serif } from '../theme';
 
 // Every cover is drawn by the app, so it always looks good (and works without internet).
-// A real cover image, when the source has one and is reachable, is shown on top of it.
+// The real cover image (looked up by the server on Open Library) is shown on top when one exists.
 const GENRE_COLORS = {
   Classics: '#3d5a80',
   Adventure: '#a8452f',
@@ -24,16 +25,16 @@ export default function Cover({ book }) {
       <View style={[styles.shade, { height: '62%', opacity: 0.07 }]} />
       <View style={[styles.shade, { height: '46%', opacity: 0.08 }]} />
       <View style={[styles.shade, { height: '30%', opacity: 0.09 }]} />
-      <View style={styles.tag}><Text style={styles.tagText} numberOfLines={1}>{book.genre}</Text></View>
       <View style={styles.textBox}>
         <Text style={styles.title} numberOfLines={4}>{book.title}</Text>
         <View style={styles.rule} />
         <Text style={styles.author} numberOfLines={2}>{book.author}</Text>
       </View>
       <View style={styles.spine} />
-      {book.cover_url && !failed && (
-        <Image source={{ uri: book.cover_url }} style={StyleSheet.absoluteFill} resizeMode="cover" onError={() => setFailed(true)} />
+      {!failed && (
+        <Image source={{ uri: `${API_URL}/books/${book.id}/cover` }} style={StyleSheet.absoluteFill} resizeMode="cover" onError={() => setFailed(true)} />
       )}
+      <View style={styles.tag}><Text style={styles.tagText} numberOfLines={1}>{book.genre}</Text></View>
     </View>
   );
 }

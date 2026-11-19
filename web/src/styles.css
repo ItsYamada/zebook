@@ -123,6 +123,7 @@ input:focus { border-color: var(--teal); outline: none; box-shadow: 0 0 0 3px rg
 .book:hover .cover { transform: translateY(-4px); }
 .cover::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(0,0,0,0) 40%, rgba(0,0,0,0.22) 100%); pointer-events: none; }
 .cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 2; }
+.cover.loaded .cover-text, .cover.loaded .cover-mark, .cover.loaded::after { visibility: hidden; }
 .cover-mark { position: absolute; right: -0.4rem; bottom: -1.6rem; font-family: var(--serif); font-weight: 700; font-size: 9rem; line-height: 1; opacity: 0.13; z-index: 0; }
 .cover-text { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 0.45rem; }
 .cover-title { font-family: var(--serif); font-weight: 700; font-size: 1.15rem; line-height: 1.18; }

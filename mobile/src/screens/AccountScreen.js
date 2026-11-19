@@ -35,6 +35,7 @@ export default function AccountScreen() {
       <Pressable style={styles.ghost} onPress={logout}><Text style={styles.ghostText}>Log out</Text></Pressable>
 
       <Text style={styles.server}>Server: {API_URL.replace(/^https?:\/\//, '').replace(/\/api$/, '')}</Text>
+      <Text style={styles.server}>Free public-domain books · Covers from Open Library</Text>
     </ScrollView>
   );
 }

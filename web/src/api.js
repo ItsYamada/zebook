@@ -1,6 +1,7 @@
 // One small API client. The Android app can reuse the same pattern.
 const BASE = import.meta.env.VITE_API_URL || '/api';
 const KEY = 'elib_token';
+export const coverUrl = (id) => `${BASE}/books/${id}/cover`; // real cover image (404 when none exists)
 
 export function getToken() {
   try { return localStorage.getItem(KEY); } catch { return null; }
