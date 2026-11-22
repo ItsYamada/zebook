@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { config } from './config.js';
 import { query } from './db.js';
+import { importStatus } from './importBooks.js';
 import authRoutes from './routes/auth.js';
 import bookRoutes from './routes/books.js';
 
@@ -26,7 +27,7 @@ app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 app.get('/api/health/db', async (_req, res) => {
   try {
     const { rows } = await query('SELECT COUNT(*) AS books FROM books');
-    res.json({ db: 'ok', books: Number(rows[0].books) });
+    res.json({ db: 'ok', books: Number(rows[0].books), import: importStatus });
   } catch (err) {
     res.status(500).json({ db: 'error', code: err.code || 'UNKNOWN' });
   }

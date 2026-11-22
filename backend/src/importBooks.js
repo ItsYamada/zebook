@@ -7,6 +7,10 @@ const API = (process.env.CATALOG_API_BASE || 'https://gutendex.com').replace(/\/
 const USER_AGENT = 'ZeBook-student-project (IPT102 school project)';
 const MAX_PAGES = 45; // 45 pages x 32 books is far more than needed
 
+// Shown on /api/health/db so you can see what the importer is doing (and why it stopped).
+export const importStatus = { state: 'not started', target: null, added: 0, total: null, note: 'The importer has not run yet', lastError: null, updatedAt: null };
+function setStatus(patch) { Object.assign(importStatus, patch, { updatedAt: new Date().toISOString() }); }
+
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '');
 
@@ -84,8 +88,10 @@ async function fetchJson(url) {
       const res = await fetch(url, { signal: ctrl.signal, headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' } });
       if (res.ok) return await res.json();
       console.warn(`book import: HTTP ${res.status} (attempt ${attempt})`);
+      setStatus({ lastError: `Catalog service answered HTTP ${res.status}` });
     } catch (err) {
       console.warn(`book import: ${err.name || 'error'} (attempt ${attempt})`);
+      setStatus({ lastError: `Could not reach the catalog service: ${err.name || 'error'}${err.cause && err.cause.code ? ' (' + err.cause.code + ')' : ''}` });
     } finally {
       clearTimeout(timer);
     }
@@ -95,17 +101,35 @@ async function fetchJson(url) {
 }
 
 export async function importBooks(target) {
+  setStatus({ state: 'running', target, note: 'Adding books from Project Gutenberg…' });
+  try {
+    await runImport(target);
+  } catch (err) {
+    setStatus({ state: 'failed', note: 'The importer crashed', lastError: err.message });
+    throw err;
+  }
+}
+
+async function runImport(target) {
   const { rows: existing } = await query('SELECT title, author, file_url FROM books');
   const urls = new Set(existing.map((r) => r.file_url));
   const identities = new Set(existing.map((r) => identity(r.title, r.author)));
   const start = existing.length;
-  if (start >= target) { console.log(`Book import: catalog already has ${start} books (target ${target})`); return; }
+  if (start >= target) {
+    console.log(`Book import: catalog already has ${start} books (target ${target})`);
+    setStatus({ state: 'done', added: 0, total: start, note: `The catalog already has ${start} books (target ${target})` });
+    return;
+  }
 
   let total = start;
   let next = `${API}/books/?languages=en&copyright=false&sort=popular`;
   for (let page = 1; next && total < target && page <= MAX_PAGES; page += 1) {
     const data = await fetchJson(next);
-    if (!data || !Array.isArray(data.results)) { console.warn('book import: stopped early (catalog service unreachable); it will continue next start'); break; }
+    if (!data || !Array.isArray(data.results)) {
+      console.warn('book import: stopped early (catalog service unreachable); it will continue next start');
+      setStatus({ state: 'stopped', added: total - start, total, note: 'Stopped early: the catalog service could not be reached. It will try again the next time the server starts.' });
+      return;
+    }
 
     for (const book of data.results) {
       if (total >= target) break;
@@ -123,7 +147,7 @@ export async function importBooks(target) {
           "INSERT IGNORE INTO books (title, author, genre, description, language, `year`, cover_url, file_url) VALUES (?, ?, ?, ?, 'English', NULL, ?, ?)",
           [title, author, genre, describe(book, genre, title, author), cover, fileUrl]
         );
-        if (r.rowCount > 0) { total += 1; urls.add(fileUrl); identities.add(key); }
+        if (r.rowCount > 0) { total += 1; urls.add(fileUrl); identities.add(key); setStatus({ added: total - start, total }); }
       } catch (err) {
         console.warn(`book import: could not add "${title}": ${err.code || err.message}`);
       }
@@ -132,4 +156,5 @@ export async function importBooks(target) {
     await sleep(300); // be polite to the free service
   }
   console.log(`Book import: added ${total - start} books, the catalog now has ${total}`);
+  setStatus({ state: total >= target ? 'done' : 'stopped', added: total - start, total, note: total >= target ? `Reached the target of ${target} books` : `Only ${total} books were available (target ${target})` });
 }
