@@ -14,7 +14,7 @@ const SPINES = [
 
 export default function AuthScreen() {
   const insets = useSafeAreaInsets();
-  const { login, register, continueAsGuest, authMode, setAuthMode } = useAuth();
+  const { login, register, continueAsGuest, authMode, setAuthMode, returning } = useAuth();
   const isRegister = authMode === 'register';
 
   const [name, setName] = useState('');
@@ -52,8 +52,8 @@ export default function AuthScreen() {
         </View>
 
         <View style={[styles.form, { paddingBottom: insets.bottom + 24 }]}>
-          <Text style={styles.h2}>{isRegister ? 'Create your account' : 'Welcome back'}</Text>
-          <Text style={styles.muted}>{isRegister ? 'Registered readers can download up to 10 books.' : 'Log in to open your library.'}</Text>
+          <Text style={styles.h2}>{isRegister ? 'Create your account' : returning ? 'Welcome back' : 'Welcome to ZeBook'}</Text>
+          <Text style={styles.muted}>{isRegister ? 'Registered readers can download up to 10 books.' : returning ? 'Log in to open your library.' : 'Log in, create an account, or continue as a guest to start reading.'}</Text>
 
           {!!error && <View style={styles.alert}><Text style={styles.alertText}>{error}</Text></View>}
 

@@ -19,6 +19,11 @@ function Shelf() {
   );
 }
 
+// Remembers (on this device) that someone has used ZeBook before, so the first visit says "Welcome to ZeBook".
+const FLAG = 'zebook_returning';
+const wasHere = () => { try { return localStorage.getItem(FLAG) === '1'; } catch { return false; } };
+const markHere = () => { try { localStorage.setItem(FLAG, '1'); } catch { /* storage unavailable */ } };
+
 export default function AuthPage({ mode }) {
   const isRegister = mode === 'register';
   const { login, register, continueAsGuest } = useAuth();
@@ -28,6 +33,7 @@ export default function AuthPage({ mode }) {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [busy, setBusy] = useState(false);
+  const [returning] = useState(wasHere); // read once, so the heading does not change while logging in
 
   const set = (key) => (e) => setForm({ ...form, [key]: e.target.value });
 
@@ -37,6 +43,7 @@ export default function AuthPage({ mode }) {
     setFieldErrors({});
     try {
       await action();
+      markHere();
       navigate('/', { replace: true });
     } catch (err) {
       setError(err.message);
@@ -65,9 +72,9 @@ export default function AuthPage({ mode }) {
 
       <section className="auth-panel">
         <form onSubmit={onSubmit} noValidate className="auth-form">
-          <h2>{isRegister ? 'Create your account' : 'Welcome back'}</h2>
+          <h2>{isRegister ? 'Create your account' : returning ? 'Welcome back' : 'Welcome to ZeBook'}</h2>
           <p className="muted">
-            {isRegister ? 'Registered readers can download up to 10 books.' : 'Log in to open your library.'}
+            {isRegister ? 'Registered readers can download up to 10 books.' : returning ? 'Log in to open your library.' : 'Log in, create an account, or continue as a guest to start reading.'}
           </p>
 
           {error && <div className="alert" role="alert">{error}</div>}
