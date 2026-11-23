@@ -16,7 +16,9 @@ const target = raw === undefined || raw === '' || Number.isNaN(Number(raw)) ? 26
 app.listen(config.port, () => {
   console.log(`ZeBook running on port ${config.port}`);
   if (target > 0) {
-    importBooks(target).catch((err) => console.error('Book import failed:', err.message));
+    importStatus.state = 'waiting';
+    importStatus.note = 'The importer starts a few seconds after the server, so the site is ready first';
+    setTimeout(() => importBooks(target).catch((err) => console.error('Book import failed:', err.message)), 15000);
   } else {
     importStatus.state = 'disabled';
     importStatus.note = 'BOOK_TARGET is 0, so the importer is switched off';
