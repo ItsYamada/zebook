@@ -1,7 +1,7 @@
 import app from './app.js';
 import { config } from './config.js';
 import { migrate } from './migrate.js';
-import { importBooks, importStatus } from './importBooks.js';
+import { startImporter, importStatus } from './importBooks.js';
 
 try {
   if (process.env.AUTO_MIGRATE === 'true') await migrate();
@@ -18,7 +18,7 @@ app.listen(config.port, () => {
   if (target > 0) {
     importStatus.state = 'waiting';
     importStatus.note = 'The importer starts a few seconds after the server, so the site is ready first';
-    setTimeout(() => importBooks(target).catch((err) => console.error('Book import failed:', err.message)), 15000);
+    startImporter(target); // retries by itself if the catalog website is busy
   } else {
     importStatus.state = 'disabled';
     importStatus.note = 'BOOK_TARGET is 0, so the importer is switched off';

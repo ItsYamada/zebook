@@ -1,14 +1,30 @@
+import { existsSync, createReadStream } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { query } from './db.js';
 import { BOOK_GROUPS } from './bookList.js';
 
 // Fills the catalog with free, public-domain books. The list of wanted books is in bookList.js; each one is looked up
 // in Project Gutenberg's own catalog file (the same site the reader uses) to find its book number.
 // It is safe to run again: books already in the catalog are skipped, so nothing is duplicated.
-const CSV_URL = process.env.CATALOG_CSV_URL || 'https://www.gutenberg.org/cache/epub/feeds/pg_catalog.csv';
-const USER_AGENT = 'ZeBook-student-project (IPT102 school project)';
+// Where the catalog comes from, in this order:
+//  1. a file saved in your project: backend/data/pg_catalog.csv (needs no internet, most reliable)
+//  2. Project Gutenberg's website (a few addresses are tried, each twice)
+const LOCAL_FILE = process.env.CATALOG_CSV_FILE || fileURLToPath(new URL('../data/pg_catalog.csv', import.meta.url));
+const CSV_URLS = process.env.CATALOG_CSV_URL
+  ? [process.env.CATALOG_CSV_URL]
+  : [
+      'https://www.gutenberg.org/cache/epub/feeds/pg_catalog.csv',
+      'https://gutenberg.org/cache/epub/feeds/pg_catalog.csv',
+      'https://aleph.gutenberg.org/cache/epub/feeds/pg_catalog.csv',
+    ];
+const FETCH_RETRY_MS = Number(process.env.IMPORT_FETCH_RETRY_MS || 8000); // wait between tries
+const RETRY_EVERY_MS = Number(process.env.IMPORT_RETRY_MS || 10 * 60 * 1000); // when everything failed, try again later
+const MAX_AUTO_RETRIES = 12;
+const USER_AGENT = 'ZeBook/1.0 (IPT102 school project; zebook-app.wasmer.app)';
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Shown on /api/health/db so you can see what the importer is doing (and why it stopped).
-export const importStatus = { state: 'not started', target: null, added: 0, total: null, note: 'The importer has not run yet', lastError: null, updatedAt: null };
+export const importStatus = { state: 'not started', target: null, added: 0, total: null, source: null, note: 'The importer has not run yet', lastError: null, nextRetryAt: null, updatedAt: null };
 function setStatus(patch) { Object.assign(importStatus, patch, { updatedAt: new Date().toISOString() }); }
 
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '');
@@ -67,7 +83,7 @@ function csvParser(onRow) {
   };
 }
 
-async function scanCatalog(wanted) {
+function makeScanner(wanted) {
   const buckets = new Map(); // first 3 letters of the wanted title -> entries
   wanted.forEach((w, index) => { const k = w.n.slice(0, 3); if (!buckets.has(k)) buckets.set(k, []); buckets.get(k).push({ ...w, index }); });
   const found = new Map(); // index -> { exact, prefix } (lowest book number of each kind)
@@ -92,13 +108,16 @@ async function scanCatalog(wanted) {
       found.set(w.index, rec);
     }
   };
+  return { found, onRow };
+}
 
+// Returns null when it worked, or a short error message.
+async function fetchCatalog(url, parser) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 180000);
   try {
-    const res = await fetch(CSV_URL, { signal: ctrl.signal, headers: { 'User-Agent': USER_AGENT } });
-    if (!res.ok) { setStatus({ lastError: `Gutenberg catalog answered HTTP ${res.status}` }); return null; }
-    const parser = csvParser(onRow);
+    const res = await fetch(url, { signal: ctrl.signal, headers: { 'User-Agent': USER_AGENT, Accept: 'text/csv,text/plain,*/*' } });
+    if (!res.ok) return `Gutenberg catalog answered HTTP ${res.status}`;
     if (res.body && typeof res.body.getReader === 'function') {
       const reader = res.body.getReader();
       const decoder = new TextDecoder('utf-8');
@@ -111,14 +130,37 @@ async function scanCatalog(wanted) {
     } else {
       parser.push(await res.text());
     }
-    parser.end();
-    return found;
-  } catch (err) {
-    setStatus({ lastError: `Could not read the Gutenberg catalog: ${err.name || 'error'}${err.cause && err.cause.code ? ` (${err.cause.code})` : ''}` });
     return null;
+  } catch (err) {
+    return `Could not read the Gutenberg catalog: ${err.name || 'error'}${err.cause && err.cause.code ? ` (${err.cause.code})` : ''}`;
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function scanCatalog(wanted) {
+  const { found, onRow } = makeScanner(wanted);
+
+  if (existsSync(LOCAL_FILE)) { // best option: the catalog file saved inside the project
+    setStatus({ source: 'file in the project (backend/data/pg_catalog.csv)' });
+    const parser = csvParser(onRow);
+    for await (const chunk of createReadStream(LOCAL_FILE, { encoding: 'utf8', highWaterMark: 1 << 20 })) parser.push(chunk);
+    parser.end();
+    return found;
+  }
+
+  for (const url of CSV_URLS) {
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      setStatus({ source: url });
+      const parser = csvParser(onRow);
+      const error = await fetchCatalog(url, parser);
+      if (!error) { parser.end(); return found; }
+      console.warn(`book import: ${error} (${url}, try ${attempt})`);
+      setStatus({ lastError: error });
+      await sleep(FETCH_RETRY_MS);
+    }
+  }
+  return null;
 }
 
 function describe(w, subjectsText) {
@@ -127,7 +169,7 @@ function describe(w, subjectsText) {
 }
 
 export async function importBooks(target) {
-  setStatus({ state: 'running', target, note: 'Reading the Project Gutenberg catalog…' });
+  setStatus({ state: 'running', target, lastError: null, nextRetryAt: null, note: 'Reading the Project Gutenberg catalog…' });
   try {
     await runImport(target);
   } catch (err) {
@@ -179,4 +221,43 @@ async function runImport(target) {
     state: total >= target ? 'done' : 'stopped', added: total - start, total,
     note: total >= target ? `Reached the target of ${target} books` : `Only ${total} books could be matched (target ${target}); ${found.size} of ${wanted.length} wanted titles were found in the catalog`,
   });
+}
+
+// ---------- running it: automatic retries and a manual "run now" ----------
+let configuredTarget = 0;
+let running = false;
+let autoRetries = 0;
+let retryTimer = null;
+
+async function attempt() {
+  if (running || !configuredTarget) return;
+  running = true;
+  clearTimeout(retryTimer);
+  try {
+    await importBooks(configuredTarget);
+  } catch (err) {
+    console.error('Book import failed:', err.message);
+  } finally {
+    running = false;
+  }
+  // The catalog website was unreachable: try again later, without anyone restarting the server.
+  if (importStatus.state === 'stopped' && importStatus.lastError && autoRetries < MAX_AUTO_RETRIES) {
+    autoRetries += 1;
+    setStatus({ nextRetryAt: new Date(Date.now() + RETRY_EVERY_MS).toISOString() });
+    retryTimer = setTimeout(attempt, RETRY_EVERY_MS);
+  }
+}
+
+export function startImporter(target, delayMs = 15000) {
+  configuredTarget = target;
+  setTimeout(attempt, delayMs);
+}
+
+// Used by GET /api/health/import-now
+export function requestImport() {
+  if (!configuredTarget) return { started: false };
+  if (running) return { started: false };
+  autoRetries = 0;
+  attempt();
+  return { started: true };
 }

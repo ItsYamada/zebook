@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { config } from './config.js';
 import { query } from './db.js';
-import { importStatus } from './importBooks.js';
+import { importStatus, requestImport } from './importBooks.js';
 import authRoutes from './routes/auth.js';
 import bookRoutes from './routes/books.js';
 
@@ -31,6 +31,11 @@ app.get('/api/health/db', async (_req, res) => {
   } catch (err) {
     res.status(500).json({ db: 'error', code: err.code || 'UNKNOWN' });
   }
+});
+// Starts the book import right now (does nothing if it is already running). Safe to open in a browser.
+app.get('/api/health/import-now', (_req, res) => {
+  const { started } = requestImport();
+  res.json({ started, import: importStatus });
 });
 app.use('/api/auth', authRoutes);
 app.use('/api/books', bookRoutes);
